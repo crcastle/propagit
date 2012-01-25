@@ -33,13 +33,14 @@ Propagit.prototype.connect = function () {
     var args = argv.args.concat(function (remote, conn) {
         remote.auth(self.secret, function (err, res) {
             if (err) self.emit('error', err)
-            else conn.emit('up', res)
+            else {
+                self.ports = res.ports;
+                conn.emit('up', res);
+            };
         });
     });
     
     var inst = upnode(function (remote, conn) {
-        self.ports = remote.ports;
-        
         this.spawn = function (cmd, args, emit) {
             self.emit('spawn', cmd, args, emit);
         };
@@ -48,8 +49,8 @@ Propagit.prototype.connect = function () {
             self.emit('clone', repo, emit);
         };
         
-        this.pull = function (repo, emit) {
-            self.emit('pull', repo, emit);
+        this.fetch = function (repo, emit) {
+            self.emit('fetch', repo, emit);
         };
     });
     var hub = self.hub = inst.connect.apply(inst, args);
@@ -86,7 +87,7 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
                 fs.readdir(self.repodir, function (err, repos) {
                     if (err) console.error(err)
                     else repos.forEach(function (repo) {
-                        console.log('clone ' + repo);
+console.log('clone ' + repo);
                         remote.clone(
                             repo,
                             process.stdout.emit.bind(process.stdout)
@@ -102,9 +103,11 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
     
     var repos = self.repos = pushover(self.repodir);
     repos.on('push', function (repo) {
+console.log('push ' + repo);
         self.emit('push', repo);
         self.drones.forEach(function (drone) {
-            drone.spawn();
+console.log('fetch ' + repo);
+            drone.fetch(repo, process.stdout.emit.bind(process.stdout));
         });
     });
     repos.listen(gitPort);
