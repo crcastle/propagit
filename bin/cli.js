@@ -116,6 +116,7 @@ else if (cmd === 'deploy') {
     var hub = parseAddr(argv.hub);
     propagit(argv).deploy(hub, repo, commit, dcmd, function (name, buf) {
         if (name === 'data') console.log(buf);
+        else if (name === 'end') process.exit();
     });
 }
 

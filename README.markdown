@@ -3,8 +3,6 @@ propagit
 
 Cascading multi-server git deployment.
 
-This project needs a few more features to be actually useful. Coming soon.
-
 example
 =======
 
@@ -27,7 +25,11 @@ Just do:
 To deploy the code, use the git commit hash that you want to deploy and specify
 the commands you want to run after the `--`:
 
-    $ 
+    $ propagit deploy --hub 6000 --secret beepboop \
+      somerepo ed56c6e85731d412fe22cf437cb63130afc34b07 -- \
+      node server.js 8085
+    Listening on :8085
+    ^C
 
 todo
 ====
@@ -38,9 +40,9 @@ todo
 
 * propagit list
 
-* propagit deploy repo/commithash command
-
 * port mapping?
+
+* process management
 
 install
 =======
