@@ -1,9 +1,11 @@
 var dnode = require('dnode');
 var upnode = require('upnode');
-var EventEmitter = require('events').EventEmitter;
 var pushover = require('pushover');
-var fs = require('fs');
 var mkdirp = require('mkdirp');
+
+var fs = require('fs');
+var path = require('path');
+var EventEmitter = require('events').EventEmitter;
 
 module.exports = function (secret) {
     return new Propagit(secret);
@@ -25,14 +27,17 @@ function Propagit (opts) {
         opts = { secret : opts };
     }
     this.secret = opts.secret;
-    this.repodir = opts.repodir || process.cwd() + '/repos';
-    mkdirp(this.repodir);
+    
+    this.repodir = path.resolve(opts.repodir || process.cwd() + '/repos');
+    this.deploydir = path.resolve(opts.deploydir || process.cwd() + '/deploy');
 }
 
 Propagit.prototype = new EventEmitter;
 
 Propagit.prototype.connect = function () {
     var self = this;
+    mkdirp(self.deploydir);
+    mkdirp(self.repodir);
     
     var argv = [].slice.call(arguments).reduce(function (acc, arg) {
         if (typeof arg === 'function') acc.cb = arg
@@ -61,6 +66,10 @@ Propagit.prototype.connect = function () {
             self.emit('fetch', repo, emit);
         };
         
+        this.deploy = function (repo, commit, emit) {
+            self.emit('deploy', repo, commit, emit);
+        };
+        
         this.name = uid;
     });
     var hub = self.hub = inst.connect.apply(inst, args);
@@ -75,6 +84,7 @@ Propagit.prototype.connect = function () {
 
 Propagit.prototype.listen = function (controlPort, gitPort) {
     var self = this;
+    mkdirp(self.repodir);
     self.drones = [];
     
     var server = dnode(function (remote, conn) {

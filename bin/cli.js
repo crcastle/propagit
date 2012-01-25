@@ -54,13 +54,6 @@ if (cmd === 'drone') {
                 ps.stdout.on('end', onend);
                 ps.stderr.on('end', onend);
             }
-            else if (typeof emit === 'object') {
-                if (typeof emit.stdout === 'function') {
-                    ps.stdout.on('data', function (buf) {
-                        emit('data', buf.toString());
-                    });
-                }
-            }
         }
         c.on('spawn', spawner);
         
@@ -77,19 +70,31 @@ if (cmd === 'drone') {
                 }
                 else spawner('git',
                     [ 'init', '--bare', path.join(c.repodir, repo + '.git') ],
-                    emit,
-                    { pwd : c.repodir }
+                    emit
                 )
             });
         }
         c.on('fetch', function (repo, emit) {
             create(repo, function (name) {
+                if (typeof emit === 'function') emit.apply(null, arguments);
                 if (name === 'end') {
                     spawner('git', [
                         'fetch',
                         'http://' + hub.host + ':' + c.ports.git + '/' + repo
                     ], emit, { cwd : path.join(c.repodir, repo + '.git') });
                 }
+            });
+        });
+        
+        c.on('deploy', function (repo, commit, emit) {
+            var dir = path.join(c.deploydir, repo + '.' + commit);
+            spawner('git', [
+                'clone',
+                path.join(c.repodir, repo + '.git'),
+                dir
+            ], function (name) {
+                if (typeof emit === 'function') emit.apply(null, arguments);
+                spawner('git', [ 'checkout', commit ], emit, { cwd : dir });
             });
         });
     });
