@@ -31,7 +31,9 @@ todo
     
 * propagit log
 
-* propagit deploy commithash command
+* propagit list
+
+* propagit deploy repo/commithash command
 
 * port mapping?
 

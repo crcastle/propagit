@@ -82,8 +82,6 @@ if (cmd === 'drone') {
                 )
             });
         }
-        c.on('create', create);
-        
         c.on('fetch', function (repo, emit) {
             create(repo, function (name) {
                 if (name === 'end') {

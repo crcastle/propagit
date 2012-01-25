@@ -57,10 +57,6 @@ Propagit.prototype.connect = function () {
             self.emit('spawn', cmd, args, emit);
         };
         
-        this.create = function (repo, emit) {
-            self.emit('create', repo, emit);
-        };
-        
         this.fetch = function (repo, emit) {
             self.emit('fetch', repo, emit);
         };
@@ -101,13 +97,7 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
                 fs.readdir(self.repodir, function (err, repos) {
                     if (err) console.error(err)
                     else repos.forEach(function (repo) {
-                        var log = logger(remote.name);
-                        remote.create(repo, function (name) {
-                            if (name === 'end') {
-                                remote.fetch(repo, log);
-                            }
-                            log.apply(null, arguments);
-                        });
+                        remote.fetch(repo, logger(remote.name));
                     });
                 });
             }
