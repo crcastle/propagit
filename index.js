@@ -9,6 +9,17 @@ module.exports = function (secret) {
     return new Propagit(secret);
 };
 
+var logger = function (uid) {
+    return function (name, buf) {
+        if (name === 'data') {
+            var lines = buf.toString().split('\n');
+            lines.forEach(function (line) {
+                console.log('[' + uid + '] ' + line);
+            });
+        }
+    };
+};
+
 function Propagit (opts) {
     if (typeof opts === 'string') {
         opts = { secret : opts };
@@ -40,6 +51,7 @@ Propagit.prototype.connect = function () {
         });
     });
     
+    var uid = (Math.random() * Math.pow(16,8)).toString(16);
     var inst = upnode(function (remote, conn) {
         this.spawn = function (cmd, args, emit) {
             self.emit('spawn', cmd, args, emit);
@@ -52,6 +64,8 @@ Propagit.prototype.connect = function () {
         this.fetch = function (repo, emit) {
             self.emit('fetch', repo, emit);
         };
+        
+        this.name = uid;
     });
     var hub = self.hub = inst.connect.apply(inst, args);
     
@@ -87,11 +101,13 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
                 fs.readdir(self.repodir, function (err, repos) {
                     if (err) console.error(err)
                     else repos.forEach(function (repo) {
-console.log('create ' + repo);
-                        remote.create(
-                            repo,
-                            process.stdout.emit.bind(process.stdout)
-                        );
+                        var log = logger(remote.name);
+                        remote.create(repo, function (name) {
+                            if (name === 'end') {
+                                remote.fetch(repo, log);
+                            }
+                            log.apply(null, arguments);
+                        });
                     });
                 });
             }
@@ -103,11 +119,9 @@ console.log('create ' + repo);
     
     var repos = self.repos = pushover(self.repodir);
     repos.on('push', function (repo) {
-console.log('push ' + repo);
         self.emit('push', repo);
         self.drones.forEach(function (drone) {
-console.log('fetch ' + repo);
-            drone.fetch(repo, process.stdout.emit.bind(process.stdout));
+            drone.fetch(repo, logger(drone.name));
         });
     });
     repos.listen(gitPort);

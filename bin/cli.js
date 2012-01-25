@@ -35,7 +35,8 @@ if (cmd === 'drone') {
         });
         
         function spawner (cmd, args, emit, opts) {
-console.dir([ cmd, args, emit, opts ]);
+            console.log(cmd + ' ' + args.join(' '));
+            
             if (!opts) opts = { cwd : c.repodir };
             var ps = spawn(cmd, args, opts);
             
