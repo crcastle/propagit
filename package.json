@@ -1,0 +1,45 @@
+{
+    "name" : "propagit",
+    "description" : "cascading multi-server git deployment",
+    "version" : "1.1.0",
+    "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/substack/propagit.git"
+    },
+    "main" : "index.js",
+    "bin" : {
+        "propagit" : "bin/cli.js"
+    },
+    "keywords" : [
+        "git",
+        "deploy",
+        "multi-server",
+        "cluster"
+    ],
+    "directories" : {
+        "lib" : ".",
+        "example" : "example",
+        "test" : "test"
+    },
+    "scripts" : {
+    },
+    "dependencies" : {
+        "optimist" : "0.3.x",
+        "figc" : "0.0.x",
+        "dnode" : "0.9.x",
+        "upnode" : "0.1.x",
+        "pushover" : "0.1.x",
+        "mkdirp" : "0.3.x"
+    },
+    "devDependencies" : {
+    },
+    "engines" : {
+        "node" : ">=0.4.0"
+    },
+    "license" : "MIT",
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    }
+}
