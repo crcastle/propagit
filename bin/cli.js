@@ -85,20 +85,18 @@ if (cmd === 'drone') {
         
         c.on('deploy', function (repo, commit, emit) {
             var dir = path.join(c.deploydir, repo + '.' + commit);
-            spawn('git', [ 'init', dir ]).on('exit', function () {
-                spawner('git', [
-                    'clone',
-                    path.join(c.repodir, repo + '.git'),
-                    dir
-                ], function (name) {
-                    if (name === 'end') {
-                        spawner('git',
-                            [ 'checkout', commit ],
-                            emit,
-                            { cwd : dir }
-                        );
-                    }
-                });
+            spawner('git', [
+                'clone',
+                path.join(c.repodir, repo + '.git'),
+                dir
+            ], function (name) {
+                if (name === 'end') {
+                    spawner('git',
+                        [ 'checkout', commit ],
+                        emit,
+                        { cwd : dir }
+                    );
+                }
             });
         });
     });

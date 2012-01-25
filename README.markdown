@@ -24,6 +24,11 @@ Just do:
     $ cd ~/projects/somerepo
     $ git push http://hubhost:6001/somerepo master
 
+To deploy the code, use the git commit hash that you want to deploy and specify
+the commands you want to run after the `--`:
+
+    $ 
+
 todo
 ====
 
