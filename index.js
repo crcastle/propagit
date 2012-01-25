@@ -58,8 +58,8 @@ Propagit.prototype.connect = function () {
     
     var uid = (Math.random() * Math.pow(16,8)).toString(16);
     var inst = upnode(function (remote, conn) {
-        this.spawn = function (cmd, args, emit) {
-            self.emit('spawn', cmd, args, emit);
+        this.spawn = function (cmd, args, emit, opts) {
+            self.emit('spawn', cmd, args, emit, opts);
         };
         
         this.fetch = function (repo, emit) {
@@ -71,6 +71,7 @@ Propagit.prototype.connect = function () {
         };
         
         this.name = uid;
+        this.role = 'drone';
     });
     var hub = self.hub = inst.connect.apply(inst, args);
     
@@ -91,25 +92,44 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
         this.auth = function (secret, cb) {
             if (typeof cb !== 'function') return
             else if (self.secret === secret) {
-                self.drones.push(remote);
-                conn.on('end', function () {
-                    var ix = self.drones.indexOf(remote);
-                    if (ix >= 0) self.drones.splice(ix, 1);
-                });
+                if (remote.role === 'drone') {
+                    self.drones.push(remote);
+                    conn.on('end', function () {
+                        var ix = self.drones.indexOf(remote);
+                        if (ix >= 0) self.drones.splice(ix, 1);
+                    });
+                }
                 
-                cb(null, {
+                var res = {
                     ports : {
                         control : controlPort,
                         git : gitPort,
                     },
-                });
+                };
+                if (remote.role !== 'drone') {
+                    res.deploy = function () {
+                        var args = [].slice.call(arguments);
+                        self.drones.forEach(function (drone) {
+                            drone.deploy.apply(null, args);
+                        });
+                    };
+                    res.spawn = function () {
+                        var args = [].slice.call(arguments);
+                        self.drones.forEach(function (drone) {
+                            drone.spawn.apply(null, args);
+                        });
+                    };
+                }
+                cb(null, res);
                 
-                fs.readdir(self.repodir, function (err, repos) {
-                    if (err) console.error(err)
-                    else repos.forEach(function (repo) {
-                        remote.fetch(repo, logger(remote.name));
+                if (remote.role === 'drone') {
+                    fs.readdir(self.repodir, function (err, repos) {
+                        if (err) console.error(err)
+                        else repos.forEach(function (repo) {
+                            remote.fetch(repo, logger(remote.name));
+                        });
                     });
-                });
+                }
             }
             else cb('ACCESS DENIED')
         };
@@ -125,4 +145,25 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
         });
     });
     repos.listen(gitPort);
+};
+
+Propagit.prototype.deploy = function (hub, repo, commit, cmd, emit) {
+    var self = this;
+    dnode.connect(hub.host, hub.port, function (remote, conn) {
+        remote.auth(self.secret, function (err, res) {
+            if (err) { 
+                console.error(err);
+                conn.end();
+            }
+            else res.deploy(repo, commit, function (name) {
+                if (name === 'end') {
+                    if (cmd) res.spawn(cmd[0], cmd.slice(1), emit, {
+                        repo : repo,
+                        commit : commit,
+                    });
+                    else conn.end();
+                }
+            });
+        });
+    });
 };

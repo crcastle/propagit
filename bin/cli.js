@@ -1,21 +1,13 @@
 #!/usr/bin/env node
 var argv = require('optimist').argv;
-var figc = require('figc');
 var propagit = require('../');
 var spawn = require('child_process').spawn;
 var path = require('path');
 
 var cmd = argv._[0];
-if (argv._[1]) {
-    argv = figc(argv._[1]);
-}
 
 if (cmd === 'drone') {
-    var s = argv.hub.toString().split(':');
-    var hub = {
-        host : s[1] ? s[0] : 'localhost',
-        port : parseInt(s[1] || s[0], 10),
-    };
+    var hub = parseAddr(argv.hub);
     
     propagit(argv).connect(hub, function (c) {
         c.on('error', function (err) {
@@ -55,7 +47,12 @@ if (cmd === 'drone') {
                 ps.stderr.on('end', onend);
             }
         }
-        c.on('spawn', spawner);
+        c.on('spawn', function (cmd, args, emit, opts) {
+            if (opts && opts.repo && opts.commit) {
+                opts.cwd = path.join(c.deploydir, opts.repo + '.' + opts.commit);
+            }
+            spawner(cmd, args, emit, opts);
+        });
         
         function create (repo, emit) {
             path.exists(path.join(c.repodir, repo + '.git'), function (ex) {
@@ -88,13 +85,20 @@ if (cmd === 'drone') {
         
         c.on('deploy', function (repo, commit, emit) {
             var dir = path.join(c.deploydir, repo + '.' + commit);
-            spawner('git', [
-                'clone',
-                path.join(c.repodir, repo + '.git'),
-                dir
-            ], function (name) {
-                if (typeof emit === 'function') emit.apply(null, arguments);
-                spawner('git', [ 'checkout', commit ], emit, { cwd : dir });
+            spawn('git', [ 'init', dir ]).on('exit', function () {
+                spawner('git', [
+                    'clone',
+                    path.join(c.repodir, repo + '.git'),
+                    dir
+                ], function (name) {
+                    if (name === 'end') {
+                        spawner('git',
+                            [ 'checkout', commit ],
+                            emit,
+                            { cwd : dir }
+                        );
+                    }
+                });
             });
         });
     });
@@ -106,4 +110,21 @@ else if (cmd === 'hub') {
     propagit(argv).listen(cport, gport);
     console.log('control service listening on :' + cport);
     console.log('git service listening on :' + gport);
+}
+else if (cmd === 'deploy') {
+    var repo = argv._[1];
+    var commit = argv._[2];
+    var dcmd = argv._[3] ? argv._.slice(3) : null;
+    var hub = parseAddr(argv.hub);
+    propagit(argv).deploy(hub, repo, commit, dcmd, function (name, buf) {
+        if (name === 'data') console.log(buf);
+    });
+}
+
+function parseAddr (addr) {
+    var s = addr.toString().split(':');
+    return {
+        host : s[1] ? s[0] : 'localhost',
+        port : parseInt(s[1] || s[0], 10),
+    };
 }
