@@ -45,8 +45,8 @@ Propagit.prototype.connect = function () {
             self.emit('spawn', cmd, args, emit);
         };
         
-        this.clone = function (repo, emit) {
-            self.emit('clone', repo, emit);
+        this.create = function (repo, emit) {
+            self.emit('create', repo, emit);
         };
         
         this.fetch = function (repo, emit) {
@@ -87,8 +87,8 @@ Propagit.prototype.listen = function (controlPort, gitPort) {
                 fs.readdir(self.repodir, function (err, repos) {
                     if (err) console.error(err)
                     else repos.forEach(function (repo) {
-console.log('clone ' + repo);
-                        remote.clone(
+console.log('create ' + repo);
+                        remote.create(
                             repo,
                             process.stdout.emit.bind(process.stdout)
                         );

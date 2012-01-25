@@ -63,7 +63,7 @@ console.dir([ cmd, args, emit, opts ]);
         }
         c.on('spawn', spawner);
         
-        c.on('clone', function (repo, emit) {
+        function create (repo, emit) {
             path.exists(path.join(c.repodir, repo + '.git'), function (ex) {
                 if (ex) {
                     if (typeof emit === 'function') {
@@ -74,16 +74,17 @@ console.dir([ cmd, args, emit, opts ]);
                         if (emit.stderr) emit.stderr('end');
                     }
                 }
-                else spawner('git', [
-                    'clone',
-                    'http://' + hub.host + ':' + c.ports.git + '/' + repo,
-                    '--bare'
-                ], emit);
+                else spawner('git',
+                    [ 'init', '--bare', path.join(c.repodir, repo + '.git') ],
+                    emit,
+                    { pwd : c.repodir }
+                )
             });
-        });
+        }
+        c.on('create', create);
         
         c.on('fetch', function (repo, emit) {
-            c.emit('clone', repo, function (name) {
+            create(repo, function (name) {
                 if (name === 'end') {
                     spawner('git', [
                         'fetch',
